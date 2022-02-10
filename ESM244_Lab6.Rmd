@@ -1,0 +1,107 @@
+---
+title: "ESM 244 Lab 6"
+author: "Logan Ossentjuk"
+date: "2/10/2022"
+output: html_document
+---
+
+```{r setup, include=TRUE, message=FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(palmerpenguins)
+
+
+library(NbClust)
+library(cluster)
+library(factoextra)
+library(dendextend)
+library(ggdendro)
+
+```
+
+```{r}
+###bill length vs bill depth 
+ggplot(penguins) +
+
+```
+
+```{r}
+ggplot(penguins) +
+  geom_point(aes(x=flipper_length_mm, y = body_mass_g,
+                 color = species, shape = sex),
+             size = 3, alpha = 0.7) +
+  scale_color_manual(values = c('orange', 'cyan4', 'darkmagenta'))
+
+summary(penguins)
+```
+
+```{r}
+#gets rid of entire row if any variables have an NA in them
+penguins_complete <- penguins %>% 
+  drop_na(bill_length_mm, bill_depth_mm, body_mass_g, flipper_length_mm)
+###rescaling data set to mean of 0 and sd of 1 because variable values are on such different magnitudes
+penguins_scale <- penguins_complete %>% 
+  select(ends_with(c('_mm', '_g'))) %>% 
+  scale()
+
+summary(penguins_scale)
+```
+
+### How many clusters?
+
+```{r}
+#Gives an estimate of the best number of clusters
+number_est <- NbClust(penguins_scale, min.nc = 2, max.nc = 10, 
+                      method = 'kmeans')
+
+### Knee method
+fviz_nbclust(penguins_scale, FUNcluster = kmeans, method = 'wss', k.max = 10) #wss = within sum of squares, FUNcluster = which function you are using to choose your clusters, k.max is the maximum number of clusters you are looking at 
+```
+
+### Let's run some k-means
+
+```{r}
+penguins_km <- kmeans(penguins_scale, centers = 3, nstart = 25)
+
+penguins_km$size
+penguins_km$cluster
+penguins_km$centers
+
+penguins_cl <- data.frame(penguins_complete,
+                         cluster_num = factor(penguins_km$cluster))
+
+ggplot(penguins_cl) +
+  geom_point(aes(x = flipper_length_mm, y=body_mass_g, color = cluster_num, shape = species))
+
+
+ggplot(penguins_cl) +
+  geom_point(aes(x = bill_depth_mm, y=bill_length_mm, color = cluster_num, shape = species))
+
+#this shows the number that were correctly clustered
+penguins_cl %>% select(species, cluster_num) %>% table()
+```
+
+
+### Part 2 hierarchical cluster analysis (agglomerative) 
+
+```{r}
+###create distance matrix
+penguins_dist <- dist(penguins_scale, method = 'euclidean')
+
+### hierarchical clustering (complete linkage)
+peng_hc_complete <- hclust(penguins_dist, method = 'ward.D')
+
+### plot using base plot
+plot(peng_hc_complete, cex = 0.6, hang = -1)
+```
+
+```{r}
+### cut into three clusters
+peng_cut_hc <- cutree(peng_hc_complete, 3)
+
+table(peng_cut_hc, penguins_complete$species)
+```
+
+
+
