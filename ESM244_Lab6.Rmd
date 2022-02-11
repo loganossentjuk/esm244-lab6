@@ -104,4 +104,72 @@ table(peng_cut_hc, penguins_complete$species)
 ```
 
 
+### World Bank Data - read in and simplify
+
+```{r}
+wb_env <- read_csv('wb_env_csv')
+```
+```{r simplify data}
+
+gb_ghg_20 <- wb_evn %>% 
+  arrange(-ghg) %>% 
+  head(20)
+```
+ 
+ 
+ ### scale the data 
+ 
+```{r}
+wb_scaled <- wb_ghg_20 %>% 
+  select(3:7) %>% 
+  scale()
+
+summary(wb_scaled)
+
+rowname(wb_sclaed) <- wb_ghg_20$name
+```
+ 
+ ### Calc Distance Matrix
+ 
+```{r}
+euc_distance <- dist(wb_scaled, method = 'euclidean')
+```
+
+### do our clustering! 
+
+```{r}
+hc_complete <- hclust(euc_distance, method = 'complete')
+
+plot(hc_complete, cex = 0.6, hang = -1)
+```
+
+```{r}
+hc_single <- hclust(euc_distance, method = 'single')
+
+plot(hc_complete, cex = 0.6, hang = -1)
+```
+
+# Make a tanglegram! 
+
+```{r}
+### convet to class dendrogram
+
+dend_complete <- as.dendrogram(hc_complete)
+dend_single <- as.dendrogram(hc_single)
+
+tanglegram(dend_complete, dend_single)
+```
+
+
+### Make a ggplot dendrogram! 
+
+```{r}
+ggdendrogram(hc_complete, rotate = TRUE) +
+  theme_minimal() +
+  labs(x = 'Country', y = 'Distance')
+```
+
+
+
+
 
